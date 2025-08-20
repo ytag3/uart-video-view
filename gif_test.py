@@ -1,20 +1,18 @@
-import serial
 import time
-import numpy as np
-from PIL import Image
+import serial
+from PIL import Image, ImageSequence
 
-ser = serial.Serial("COM4", 115200)  # change this port to match your setup
+HEADER = b'\xAA\x55'
+FOOTER = b'\x55\xAA'
+FPS = 10
+FRAME_DELAY = 1.0/ (FPS)
+WIDTH, HEIGHT = 160, 120
 
 gif = Image.open("test.gif")
+ser = serial.Serial("COM4", 921600)  # change this port to match setup
 
 while True:
-    try:
-        gif.seek(gif.tell() + 1)
-    except EOFError:
-        gif.seek(0)
-
-    gray = gif.convert("L")
-    arr = np.array(gray)
-
-    ser.write(arr.tobytes())
-    time.sleep(0.1)
+	for frame in ImageSequence.Iterator(gif):
+		gray = frame.convert("L").resize((WIDTH, HEIGHT))
+		ser.write(HEADER + gray.tobytes() + FOOTER)
+		time.sleep(FRAME_DELAY)
